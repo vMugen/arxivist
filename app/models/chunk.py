@@ -44,3 +44,7 @@ class Chunk(Base):
     paper: Mapped["Paper"] = relationship(
         back_populates="chunks"
     )
+
+    embeddings: Mapped[list["Embedding"]] = relationship(
+        back_populates="chunk"
+    )
