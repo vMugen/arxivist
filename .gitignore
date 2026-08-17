@@ -6,9 +6,12 @@ __pycache__/
 
 # Virtual environment
 venv/
-.env/
-.env.*/
-test.py
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
 
 # Databases
 *.db
@@ -38,3 +41,4 @@ dist/
 build/
 *.egg-info/
 downloads/
+test.py
