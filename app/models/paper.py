@@ -41,7 +41,7 @@ class Paper(Base):
     )
 
     published: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        DateTime,
         nullable=False
     )
 
