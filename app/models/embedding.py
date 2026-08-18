@@ -26,7 +26,7 @@ class Embedding(Base):
     )
 
     vector: Mapped[list[float]] = mapped_column(
-        Vector(384),
+        Vector(1536),
         nullable=False,
     )
 
