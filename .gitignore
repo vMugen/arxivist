@@ -12,7 +12,6 @@ venv/
 .env.*
 !.env.example
 
-
 # Databases
 *.db
 *.sqlite3
