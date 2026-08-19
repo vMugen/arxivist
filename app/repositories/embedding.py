@@ -35,3 +35,24 @@ async def get_embeddings_for_chunks(
     )
 
     return list(result.scalars().all())
+
+
+async def search_similar_chunks(
+        session: AsyncSession,
+        query_vector: list[float],
+        model: str,
+        top_k: int = 5,
+) -> list[Embedding]:
+
+    result = await session.execute(
+        select(Embedding)
+        .where(
+            Embedding.model == model,
+        )
+        .order_by(
+            Embedding.vector.cosine_distance(query_vector)
+        )
+        .limit(top_k)
+    )
+
+    return list(result.scalars().all())
