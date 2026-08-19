@@ -1,135 +1,178 @@
-# ArXivist
+# ArXivist 🔬
 
 > An experimental research ingestion and retrieval engine built from the ground up.
 
-ArXivist is a personal project for building a practical research system around arXiv papers.
+ArXivist is a personal project where I am trying to build a practical research system around arXiv papers.
 
-The idea is simple:
+The basic idea is:
 
-> Take a research paper → ingest it → extract its content → chunk it → generate embeddings → store everything in a structured way → retrieve relevant knowledge → eventually reason and execute research workflows.
+```text
+Research Paper
+     ↓
+  Ingestion
+     ↓
+ Text Extraction
+     ↓
+   Chunking
+     ↓
+  Embeddings
+     ↓
+   Storage
+     ↓
+   Retrieval
+     ↓
+  Reasoning
+     ↓
+ Research Workflows
+````
 
-This project is being built incrementally rather than as a collection of disconnected tutorials.
+The project is being built one layer at a time.
 
-The goal is not only to make the system work, but to understand the engineering decisions behind it.
+I don't want to just make an AI application that works. I want to understand the engineering decisions underneath it — databases, transactions, retrieval, embeddings, system boundaries, failure modes, scaling and eventually the more complicated AI system parts.
 
----
-
-## Current Status
-
-🚧 **Early development — ingestion + embedding pipeline**
-
-ArXivist currently supports:
-
-- Fetching paper metadata from arXiv
-- Downloading paper PDFs
-- Extracting text using PyMuPDF
-- Splitting extracted text into overlapping chunks
-- Persisting papers and chunks in the database
-- Preventing duplicate paper ingestion
-- Database-level integrity constraints
-- SQLAlchemy async sessions
-- Repository-based database access
-- Explicit transaction boundaries
-- Alembic database migrations
-- Generating embeddings for chunks
-- Storing embedding metadata and vectors
-- Avoiding unnecessary duplicate embedding generation
-- Preparing the system for vector similarity search
-
-The semantic retrieval layer is the next major milestone.
+So things will probably change a lot as I build it.
 
 ---
 
-## Technology
+## 🚧 Current Status
+
+**Early development — ingestion → embeddings → vector retrieval**
+
+Currently ArXivist can:
+
+* Fetch paper metadata from arXiv
+* Download paper PDFs
+* Extract text using PyMuPDF
+* Split extracted text into overlapping chunks
+* Persist papers and chunks
+* Prevent duplicate paper ingestion
+* Enforce database-level integrity constraints
+* Use async SQLAlchemy sessions
+* Use repository-based database access
+* Keep transaction boundaries intentional
+* Manage schema changes with Alembic
+* Generate embeddings for chunks
+* Store embedding metadata and vectors
+* Avoid unnecessary duplicate embedding generation
+* Perform cosine similarity search using pgvector
+* Return Top-K relevant chunks
+
+### Current milestone
+
+```text
+Chunk
+  ↓
+Embedding
+  ↓
+pgvector
+  ↓
+Cosine Similarity Search
+  ↓
+Top-K Chunks
+```
+
+The next step is **not RAG yet**.
+
+First I want to understand and evaluate retrieval quality, inspect the generated SQL, understand how pgvector performs the search, and then add the appropriate vector index.
+
+---
+
+# 🧱 Technology Stack
 
 ### Core
 
-![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.x-009688?style=flat-square&logo=fastapi&logoColor=white)
-![Pydantic](https://img.shields.io/badge/Pydantic-2.x-E92063?style=flat-square&logo=pydantic&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square\&logo=python\&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.x-009688?style=flat-square\&logo=fastapi\&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-2.x-E92063?style=flat-square\&logo=pydantic\&logoColor=white)
 
 ### Database
 
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?style=flat-square&logo=postgresql&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.x-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?style=flat-square\&logo=postgresql\&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.x-D71F00?style=flat-square\&logo=sqlalchemy\&logoColor=white)
 ![Alembic](https://img.shields.io/badge/Alembic-Migrations-5A5A5A?style=flat-square)
+![pgvector](https://img.shields.io/badge/pgvector-Vector_Search-336791?style=flat-square)
 
 ### Infrastructure
 
-![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED?style=flat-square&logo=docker&logoColor=white)
-![Git](https://img.shields.io/badge/Git-Version_Control-F05032?style=flat-square&logo=git&logoColor=white)
-![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square&logo=github&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED?style=flat-square\&logo=docker\&logoColor=white)
+![Git](https://img.shields.io/badge/Git-Version_Control-F05032?style=flat-square\&logo=git\&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square\&logo=github\&logoColor=white)
 
 ### AI / Retrieval
 
-![Hugging Face](https://img.shields.io/badge/Hugging_Face-Embeddings-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
+![Hugging Face](https://img.shields.io/badge/Hugging_Face-Embeddings-FFD21E?style=flat-square\&logo=huggingface\&logoColor=black)
 
-Current and planned AI/retrieval technologies include:
+Current / planned AI and retrieval technologies include:
 
-- Sentence Transformers
-- pgvector
-- Vector similarity search
-- Hybrid retrieval
-- LLM-based research workflows
-- Sandboxed code execution
+* Sentence Transformers
+* Embeddings
+* pgvector
+* Vector similarity search
+* Reranking
+* Hybrid retrieval
+* LLM-based research workflows
+* Knowledge retrieval
+* Sandboxed code execution
 
 ---
 
-# Architecture
+# 🏗️ Architecture
 
 The current architecture follows a simple layered structure:
 
 ```text
-                    Client
-                      │
-                      ▼
-                  FastAPI
-                    Router
-                      │
-                      ▼
-                   Service
-              Business Workflow
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-     Repository            External Services
-          │                       │
-          ▼                       ├── arXiv
-      Database                    ├── PDF
-          │                       └── Embedding Model
-          ▼
-     PostgreSQL
-````
+                         Client
+                           │
+                           ▼
+                       FastAPI
+                        Router
+                           │
+                           ▼
+                        Service
+                   Business Workflow
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+         Repository              External Services
+              │                         │
+              ▼                         ├── arXiv
+          Database                      ├── PDF
+              │                         └── Embedding Model
+              ▼
+         PostgreSQL
+```
 
 The separation is intentional.
 
+I'm trying to keep each layer responsible for one type of problem instead of putting everything into one large service or router.
+
 ### Router
 
-Responsible for:
+Responsible for the HTTP boundary:
 
-* HTTP requests
-* HTTP responses
+* Requests
+* Responses
 * Path/query/body parameters
 * Dependency injection
-* HTTP-level error handling
+* HTTP-level errors
 
-Routers should remain thin.
+Routers should stay thin.
 
 ### Service
 
-Responsible for:
+Responsible for the application workflow:
 
-* Application/business workflow
-* Deciding what operations happen
-* Transactional boundaries
-* Coordinating repositories and external services
-* Deciding how failures affect the workflow
+* Business/application logic
+* Coordinating operations
+* Calling repositories
+* Calling external services
+* Deciding transaction boundaries
+* Deciding what should happen when something fails
 
 ### Repository
 
-Responsible for:
+Responsible for database interaction:
 
-* Database interaction
 * Queries
 * Inserts
 * Updates
@@ -144,7 +187,7 @@ SQLAlchemy ORM models representing database entities.
 
 ### Schemas
 
-Pydantic models used for data validation, serialization, and application boundaries.
+Pydantic models used for validation, serialization and application boundaries.
 
 ### Config
 
@@ -156,56 +199,47 @@ Infrastructure configuration such as:
 
 ---
 
-# Current Pipeline
-
-The current ingestion and embedding pipeline looks like:
+# 📥 Current Ingestion Pipeline
 
 ```text
-                        arXiv
-                          │
-                          ▼
-                  Fetch Metadata
-                          │
-                          ▼
-                   Download PDF
-                          │
-                          ▼
-                    Extract Text
-                          │
-                          ▼
-                     Chunk Text
-                          │
-                          ▼
+                         arXiv
+                           │
+                           ▼
+                    Fetch Metadata
+                           │
+                           ▼
+                     Download PDF
+                           │
+                           ▼
+                     Extract Text
+                           │
+                           ▼
+                      Chunk Text
+                           │
+                           ▼
                     Persist Paper
-                          │
-                          ▼
+                           │
+                           ▼
                     Persist Chunks
-                          │
-                          ▼
-                 Generate Embeddings
-                          │
-                          ▼
-                 Persist Embeddings
+                           │
+                           ▼
+                  Generate Embeddings
+                           │
+                           ▼
+                  Persist Embeddings
+                           │
+                           ▼
+                 Vector Similarity Search
+                           │
+                           ▼
+                     Top-K Chunks
 ```
 
-The next major step is:
-
-```text
-Embedding
-    │
-    ▼
-pgvector
-    │
-    ▼
-Similarity Search
-    │
-    ▼
-Top-K Chunks
-```
+The ingestion workflow is intentionally separated into stages because each stage has a different responsibility and different failure characteristics.
 
 ---
 
-# Project Structure
+# 📁 Project Structure
 
 Current structure:
 
@@ -222,18 +256,21 @@ app/
 ├── repositories/
 │   ├── paper.py
 │   ├── chunk.py
-│   └── embedding.py
+│   ├── embedding.py
+│   └── retrieval.py
 │
 ├── routers/
 │   └── api/
 │       └── v1/
 │           ├── ingestion.py
-│           └── metadata.py
+│           ├── metadata.py
+│           └── retrieval.py
 │
 ├── schema/
 │   ├── paper.py
 │   ├── chunk.py
-│   └── ingestion.py
+│   ├── ingestion.py
+│   └── retrieval.py
 │
 ├── services/
 │   ├── ingestion.py
@@ -241,18 +278,19 @@ app/
 │   ├── pdf_downloader.py
 │   ├── extraction.py
 │   ├── chunker.py
-│   └── embedding.py
+│   ├── embedding.py
+│   └── retrieval.py
 │
 └── main.py
 ```
 
-The exact structure may evolve as the system becomes more complex.
+The exact structure will probably evolve as ArXivist becomes more complex.
 
 ---
 
-# Database Design
+# 🗄️ Database Design
 
-The current conceptual data model is:
+The current conceptual model is:
 
 ```text
 Paper
@@ -324,8 +362,6 @@ This prevents two chunks from occupying the same position within the same paper.
 
 ## `embeddings`
 
-Conceptually:
-
 ```text
 embeddings
 ────────────────────────────
@@ -344,11 +380,11 @@ Chunk
   └───< Embedding
 ```
 
-The current design deliberately keeps embeddings in a separate table rather than placing a vector directly inside `chunks`.
+Embeddings are deliberately stored separately from chunks.
 
-This gives ArXivist room to support multiple embedding representations for the same chunk in the future.
+The reason is that I don't want to assume that one chunk can only ever have one representation.
 
-For example:
+For example, eventually:
 
 ```text
 Chunk
@@ -357,11 +393,11 @@ Chunk
  └── Embedding (model C)
 ```
 
-The current implementation may still generate only one embedding per chunk.
+The current implementation can still use one embedding per chunk.
 
 ---
 
-# Chunking
+# ✂️ Chunking
 
 The current chunker uses fixed-size chunks with overlap.
 
@@ -376,16 +412,16 @@ Chunk 1:                [900 -------------------- 1900]
 Chunk 2:                               [1800 --------]
 ```
 
-Every chunk stores:
+Each chunk stores:
 
 * `chunk_index`
 * `start_char`
 * `end_char`
 * `text`
 
-The current strategy is intentionally simple.
+The current approach is intentionally simple.
 
-More advanced strategies such as:
+Later I want to evaluate whether retrieval improves with:
 
 * Semantic chunking
 * Section-aware chunking
@@ -393,15 +429,13 @@ More advanced strategies such as:
 * Heading-aware chunking
 * Token-based chunking
 
-can be evaluated later based on retrieval performance.
+I don't want to add complexity before measuring whether it actually helps.
 
 ---
 
-# Embeddings
+# 🧠 Embeddings
 
-Each chunk can be converted into a numerical vector representation.
-
-Conceptually:
+Each chunk is converted into a numerical vector representation.
 
 ```text
 Chunk text
@@ -413,13 +447,19 @@ Embedding Model
 Vector
 ```
 
-Current experimentation uses a Sentence Transformer model producing:
+Current experimentation uses:
+
+```text
+sentence-transformers/all-MiniLM-L6-v2
+```
+
+which produces:
 
 ```text
 384-dimensional vectors
 ```
 
-Example:
+Conceptually:
 
 ```text
 text
@@ -431,17 +471,15 @@ Embedding Model
 384 dimensions
 ```
 
-The embedding model determines the dimensionality of the resulting vector.
+Different embedding models can produce different dimensions and different semantic representations.
 
-The system therefore treats embedding model information as part of the embedding's identity rather than assuming that every future model will produce the same vector representation.
+Because of that, embedding model information is treated as part of the embedding's identity.
 
 ---
 
-# Embedding Provider
+# 🔌 Embedding Provider
 
 Embedding generation is separated behind a provider abstraction.
-
-Conceptually:
 
 ```text
              EmbeddingProvider
@@ -452,13 +490,17 @@ Conceptually:
 LocalEmbeddingProvider    Future Provider
 ```
 
-This allows the application to change the underlying embedding implementation without coupling the entire ingestion workflow to one specific model or provider.
+The idea is to avoid coupling the whole application to one specific embedding implementation.
+
+For now the implementation is local and uses Sentence Transformers.
+
+A future implementation could use a hosted model or another local model without rewriting the entire retrieval/ingestion workflow.
 
 ---
 
-# Embedding Workflow
+# ⚡ Embedding Workflow
 
-The current workflow is approximately:
+Current workflow:
 
 ```text
 Chunks
@@ -479,7 +521,7 @@ Create embedding records
 Persist embeddings
 ```
 
-Batching is preferred over generating embeddings one chunk at a time because embedding models can process batches more efficiently.
+Batch generation is preferred over generating one chunk at a time because embedding models can process multiple texts more efficiently.
 
 An important invariant is:
 
@@ -489,15 +531,115 @@ number of input chunks
 number of generated vectors
 ```
 
-If this invariant fails, the embedding operation should not continue blindly.
+If this doesn't hold, the system should fail instead of silently storing incorrect relationships.
 
 ---
 
-# Persistence
+# 🔎 Vector Retrieval
+
+The current retrieval flow is:
+
+```text
+User Query
+    │
+    ▼
+Query Embedding
+    │
+    ▼
+384-dimensional Vector
+    │
+    ▼
+pgvector
+    │
+    ▼
+Cosine Distance
+    │
+    ▼
+Top-K Embeddings
+    │
+    ▼
+Corresponding Chunks
+```
+
+The current SQL generated by SQLAlchemy is conceptually:
+
+```sql
+SELECT
+    chunks.id,
+    chunks.paper_id,
+    chunks.text,
+    embeddings.vector <=> $1 AS distance
+FROM embeddings
+JOIN chunks
+    ON embeddings.chunk_id = chunks.id
+WHERE embeddings.model = $2
+ORDER BY embeddings.vector <=> $1
+LIMIT $3;
+```
+
+The important part is:
+
+```text
+vector <=> query_vector
+```
+
+which is pgvector's cosine-distance operation.
+
+Lower distance means closer vectors.
+
+For the current normalized embeddings, the service converts that distance into:
+
+```text
+score = 1 - distance
+```
+
+---
+
+# 🧪 Retrieval Evaluation
+
+The retrieval system is currently being evaluated before moving into RAG.
+
+The plan is simple:
+
+```text
+Query
+  ↓
+Retrieve Top-K
+  ↓
+Inspect results
+  ↓
+Is the relevant chunk present?
+  ↓
+Top-1 / Top-3 / Top-5
+```
+
+The goal isn't to pretend that a similarity score automatically means "good retrieval".
+
+I want to test actual retrieval quality and inspect failure cases.
+
+Possible causes of bad retrieval include:
+
+```text
+Bad PDF extraction
+        ↓
+Bad chunking
+        ↓
+Bad embeddings
+        ↓
+Bad query representation
+        ↓
+Bad retrieval configuration
+```
+
+This is why retrieval quality comes before building a full RAG pipeline.
+
+---
+
+# 🗃️ Persistence
 
 Database access follows a repository pattern.
 
-Example:
+Conceptually:
 
 ```text
 Service
@@ -505,7 +647,8 @@ Service
    ├── create_paper()
    ├── create_chunks()
    ├── create_embeddings()
-   └── get_paper_by_arxiv_id()
+   ├── get_paper_by_arxiv_id()
+   └── search_similar_chunks()
             │
             ▼
        Repository
@@ -514,20 +657,20 @@ Service
          Database
 ```
 
-Repositories perform database operations.
+Repositories handle database operations.
 
 The service layer decides:
 
 * When to call them
 * In what order
 * Whether the operation should happen
-* What should happen when an operation fails
+* What should happen when something fails
 
 ---
 
-# Transactions
+# 🔄 Transactions
 
-The expensive processing stages are kept outside the database transaction whenever possible.
+Expensive processing is kept outside database transactions whenever possible.
 
 Conceptually:
 
@@ -553,7 +696,7 @@ Persist Embeddings
 COMMIT
 ```
 
-This keeps the transaction relatively short and avoids holding a database transaction open while performing expensive external or CPU-heavy operations.
+This keeps the database transaction relatively short.
 
 If persistence fails:
 
@@ -571,15 +714,15 @@ ERROR
 ROLLBACK
 ```
 
-The database can return to its previous consistent state.
+The database should return to its previous consistent state.
 
 ---
 
-# Duplicate Ingestion & Idempotency
+# ♻️ Duplicate Ingestion & Idempotency
 
 Repeated ingestion of the same paper should not unnecessarily repeat expensive work.
 
-The conceptual flow is:
+Conceptually:
 
 ```text
 Request
@@ -600,9 +743,9 @@ Does paper already exist?
 
 The application-level existence check improves efficiency.
 
-However, database constraints remain necessary because two concurrent requests can both pass an application-level check before either one commits.
+However, application checks alone cannot guarantee uniqueness under concurrent requests.
 
-Therefore:
+Therefore database constraints are still required.
 
 ```text
 Application check
@@ -614,9 +757,9 @@ Better protection
 
 ---
 
-# Database Integrity
+# 🛡️ Database Integrity
 
-The database is treated as the final authority for data integrity.
+The database is treated as the final source of truth for data integrity.
 
 Important constraints include:
 
@@ -639,7 +782,7 @@ This guarantees that the same paper cannot contain two chunks with the same chun
 
 ---
 
-# API
+# 🌐 API
 
 ## Get Paper Metadata
 
@@ -667,22 +810,28 @@ Example:
 POST /api/v1/papers/2608.13547/ingest
 ```
 
-The endpoint coordinates the ingestion workflow through the service layer.
+---
+
+## Semantic Retrieval
+
+```http
+GET /api/v1/retrieval/search?query=...
+```
+
+The query is embedded by the service layer and similarity search is performed through the repository.
 
 ---
 
-# Running Locally
+# 🐳 Running Locally
 
-## 1. Clone the repository
+## 1. Clone
 
 ```bash
-git clone <your-repository-url>
+git clone <https://github.com/Hasnain-tech295/arxivist.git>
 cd arxivist
 ```
 
----
-
-## 2. Create a virtual environment
+## 2. Create virtual environment
 
 ### Windows
 
@@ -698,23 +847,19 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
----
-
 ## 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-If the project uses a different dependency manager, use the corresponding project configuration.
-
 ---
 
-# Database Setup
+# 🗄️ Database Setup
 
 ArXivist uses PostgreSQL for the intended development architecture.
 
-If PostgreSQL is running locally, configure:
+Configure:
 
 ```text
 DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DATABASE
@@ -726,49 +871,50 @@ Example:
 DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/arxivist
 ```
 
-Do not commit real credentials to Git.
+Do not commit real credentials.
+Although, I did it by mistake. Fix the issue and rotate the credentials.
 
-Use environment variables or a local `.env` file instead.
+Use environment variables or a local `.env` file.
 
 ---
 
-# Docker
+# 🐳 Docker
 
-Docker is used to make infrastructure such as PostgreSQL reproducible across environments.
+Docker is used to make infrastructure such as PostgreSQL easier to reproduce.
 
-If a Docker Compose configuration is provided in the repository:
+If Docker Compose is configured:
 
 ```bash
 docker compose up -d
 ```
 
-Check running containers:
+Check containers:
 
 ```bash
 docker compose ps
 ```
 
-Stop the services:
+Stop services:
 
 ```bash
 docker compose down
 ```
 
-To stop containers and remove their volumes:
+To remove database volumes as well:
 
 ```bash
 docker compose down -v
 ```
 
-> `down -v` deletes database volumes. Use it only when you intentionally want to reset the development database.
+> ⚠️ `down -v` deletes database volumes. Use it only when you intentionally want to reset the development database.
 
 ---
 
-# Database Migrations
+# 🗃️ Database Migrations
 
-ArXivist uses Alembic for schema migrations.
+ArXivist uses Alembic for database schema migrations.
 
-Create a migration after changing SQLAlchemy models:
+Create a migration:
 
 ```bash
 alembic revision --autogenerate -m "describe the change"
@@ -782,13 +928,13 @@ Apply migrations:
 alembic upgrade head
 ```
 
-Check the current migration:
+Check current revision:
 
 ```bash
 alembic current
 ```
 
-View migration history:
+View history:
 
 ```bash
 alembic history
@@ -800,13 +946,11 @@ Rollback one migration:
 alembic downgrade -1
 ```
 
-Autogenerated migrations should be reviewed manually rather than blindly trusted.
+Autogenerated migrations are not treated as blindly correct. They should be reviewed before being committed.
 
 ---
 
-# Start the API
-
-Run the development server with:
+# 🚀 Start the API
 
 ```bash
 uvicorn app.main:app --reload
@@ -818,7 +962,7 @@ The API will normally be available at:
 http://localhost:8000
 ```
 
-FastAPI's interactive documentation:
+FastAPI docs:
 
 ```text
 http://localhost:8000/docs
@@ -826,103 +970,103 @@ http://localhost:8000/docs
 
 ---
 
-# Development Workflow
+# 🔁 Development Workflow
 
 ArXivist is deliberately developed feature-by-feature.
 
-The development loop is:
+The loop I'm following is:
 
 ```text
-                  ┌─────────────────────┐
-                  │    Choose Feature   │
-                  └──────────┬──────────┘
-                             ↓
-                  ┌─────────────────────┐
-                  │    Think / Design   │
-                  └──────────┬──────────┘
-                             ↓
-                  ┌─────────────────────┐
-                  │ Entities             │
-                  │ Relationships        │
-                  │ Constraints          │
-                  │ Failure Modes        │
-                  │ Transactions         │
-                  └──────────┬──────────┘
-                             ↓
-                  ┌─────────────────────┐
-                  │      Implement      │
-                  └──────────┬──────────┘
-                             ↓
-                  ┌─────────────────────┐
-                  │        Test         │
-                  └──────────┬──────────┘
-                             ↓
-                  ┌─────────────────────┐
-                  │ Intentionally Break │
-                  └──────────┬──────────┘
-                             ↓
-                  ┌─────────────────────┐
-                  │ Diagnose + Fix      │
-                  └──────────┬──────────┘
-                             ↓
-                  ┌─────────────────────┐
-                  │ Record What Learned │
-                  └──────────┬──────────┘
-                             │
-                             └──────────► Next Feature
+                ┌─────────────────────┐
+                │    Choose Feature   │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │    Think / Design   │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │ Entities            │
+                │ Relationships       │
+                │ Constraints         │
+                │ Failure Modes       │
+                │ Transactions        │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │      Implement      │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │        Test         │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │ Intentionally Break │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │ Diagnose + Fix      │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │ Record What Learned │
+                └──────────┬──────────┘
+                           │
+                           └──────────► Next Feature
 ```
 
-The purpose of this workflow is to develop engineering judgment rather than simply reproduce code.
+The purpose is not just to finish features.
+
+I want to build the habit of asking **why** a system behaves the way it does.
 
 ---
 
-# Engineering Principles
+# 🧠 Engineering Questions
 
-Several principles guide the project.
-
-### 1. Database is the final source of truth
-
-Application validation improves user experience and efficiency, but database constraints protect the actual data.
-
-### 2. Keep transactions intentional
-
-Do not keep transactions open while performing expensive external or CPU-heavy work unless there is a specific reason.
-
-### 3. Keep routers thin
-
-HTTP concerns belong at the API boundary.
-
-### 4. Keep repositories focused
-
-Repositories should know how to interact with the database, not why the application wants the data.
-
-### 5. Put workflow decisions in services
-
-The service layer coordinates application behavior and transactional boundaries.
-
-### 6. Design for failure
-
-Every new feature should answer:
+For every significant feature, I try to ask:
 
 ```text
-What happens if this step fails?
+What are the entities?
+
+What are their relationships?
+
+Who owns what?
+
+What should be unique?
+
+What can fail?
+
 What happens if it runs twice?
+
 What happens if two requests run concurrently?
-What data must remain consistent?
+
+What belongs inside a transaction?
+
+What belongs outside?
+
+Which layer owns the decision?
+
+What happens when the system grows?
+
+What are the alternatives?
+
+Why are we choosing this design?
 ```
 
-### 7. Prefer explicit trade-offs
+These questions are becoming part of the project itself.
 
-A simple design that is understood is often more valuable at this stage than premature complexity.
+---
 
+# 🎯 Why ArXivist?
 
-# Why ArXivist?
+There are already many excellent tools for searching, summarizing and interacting with research papers.
 
-There are already excellent tools for searching, summarizing, and interacting with research papers.
+The point of ArXivist is different.
 
-The purpose of ArXivist is different.
+I want to understand and build the machinery myself.
 
-It is an attempt to understand and build the underlying machinery myself.
+The long-term direction is:
 
 ```text
 Ingestion
@@ -938,13 +1082,35 @@ Research
 Execution
 ```
 
-The project is intentionally built one layer at a time.
+Eventually I want ArXivist to move beyond simply retrieving pieces of papers.
 
-Each layer is an opportunity to understand the engineering problems underneath modern AI systems.
+The bigger idea is a system that can:
+
+```text
+Find relevant research
+        ↓
+Understand the evidence
+        ↓
+Connect information
+        ↓
+Identify gaps / questions
+        ↓
+Plan research
+        ↓
+Run experiments
+        ↓
+Evaluate results
+        ↓
+Remember what happened
+        ↓
+Continue the research loop
+```
+
+That's a much bigger problem, so I'm building toward it one layer at a time.
 
 ---
 
-# Learning Philosophy
+# 📚 Learning Philosophy
 
 ArXivist is both a software project and an engineering laboratory.
 
@@ -954,37 +1120,25 @@ The goal is not:
 
 The goal is:
 
-> "Can I understand why the system works, why it fails, and why we chose this design over alternatives?"
+> "Can I understand why the system works, why it fails, and why we chose this design over the alternatives?"
 
-For every significant feature, the project asks:
+Sometimes the implementation will be simple.
 
-```text
-What are the entities?
-What are their relationships?
-What owns what?
-What must be unique?
-What can fail?
-What happens if it runs twice?
-What happens concurrently?
-What belongs inside a transaction?
-What belongs outside?
-Which layer owns the decision?
-What happens when the system grows?
-```
+Sometimes I'll probably design something badly, break it, fix it and then understand why the original design was wrong.
 
-The answers become part of the architecture rather than remaining implicit assumptions.
+That's intentional.
+
+I want the project to teach me things that I won't get from simply following tutorials.
 
 ---
 
-# Status
+# 🚧 Status
 
-🚧 **Early development**
+**Early development.**
 
-ArXivist is actively evolving.
+The architecture, database schema, APIs and retrieval strategy will change as I discover new problems.
 
-The architecture, database schema, APIs, and retrieval strategy will change as new engineering problems are discovered.
-
-The current immediate goal is:
+For now the immediate milestone is:
 
 ```text
 Chunk
@@ -995,9 +1149,11 @@ pgvector
   ↓
 Similarity Search
   ↓
-Top-K Relevant Chunks
+Evaluate Retrieval
+  ↓
+Vector Index
+  ↓
+Benchmark
 ```
 
-After that, the system will move toward increasingly sophisticated retrieval, research reasoning, and eventually research execution.
-
-```
+Only after retrieval is understood and working well will I move into the next layer.
