@@ -38,14 +38,24 @@ async def ingestion(
     arxiv_id: str,
 ) -> IngestionResponse:
 
-    paper = await get_paper_by_id(
-        session,
-        arxiv_id,
-    )
+    async with session.begin():
 
-    paper_id = paper.id
+        paper = await get_paper_by_id(
+            session,
+            arxiv_id,
+        )
 
-    await session.rollback()
+        if paper is not None:
+            paper_id = paper.id
+
+            chunks = await get_chunks_for_paper(
+                session,
+                paper_id,
+            )
+        else:
+            paper_id = None
+            chunks = []
+
 
     if paper is None:
 
@@ -54,25 +64,26 @@ async def ingestion(
             arxiv_id,
         )
 
-
         pdf_path = await anyio.to_thread.run_sync(
             download_pdf,
             metadata.pdf_url,
             arxiv_id,
         )
 
-
         pages, text = await anyio.to_thread.run_sync(
             extract_text,
             pdf_path,
         )
 
-
-        chunks = await anyio.to_thread.run_sync(
+        chunk_data = await anyio.to_thread.run_sync(
             chunk_text,
             text,
         )
 
+        if not chunk_data:
+            raise RuntimeError(
+                f"Paper {arxiv_id} produced no chunks."
+            )
 
         async with session.begin():
 
@@ -98,7 +109,7 @@ async def ingestion(
                     end_char=chunk.end_char,
                     text=chunk.text,
                 )
-                for chunk in chunks
+                for chunk in chunk_data
             ]
 
             await create_chunks(
@@ -106,34 +117,33 @@ async def ingestion(
                 db_chunks,
             )
 
+        chunks = db_chunks
+        pages = pages
+        extracted_text = text
+
     else:
 
-        chunks = await get_chunks_for_paper(
-            session,
-            paper_id,
-        )
-
-        await session.rollback()
-
         pages = 0
-        text = ""
+        extracted_text = ""
+
 
     if not chunks:
         raise RuntimeError(
             f"Paper {arxiv_id} has no chunks."
         )
 
-
     chunk_ids = [
         chunk.id
         for chunk in chunks
     ]
 
-    existing_embeddings = await get_embeddings_for_chunks(
-        session,
-        chunk_ids,
-        MODEL_NAME,
-    )
+    async with session.begin():
+
+        existing_embeddings = await get_embeddings_for_chunks(
+            session,
+            chunk_ids,
+            MODEL_NAME,
+        )
 
 
     existing_chunk_ids = {
@@ -162,6 +172,7 @@ async def ingestion(
         )
 
         async with session.begin():
+
             await create_embeddings(
                 session,
                 db_embeddings,
@@ -170,6 +181,6 @@ async def ingestion(
 
     return IngestionResponse(
         total_pages=pages,
-        extracted_text_preview=text[:500],
+        extracted_text_preview=extracted_text[:500],
         total_chunks=len(chunks),
     )
