@@ -24,17 +24,3 @@ async def count_chunks_for_paper(
     )
 
     return result.scalar_one()
-
-
-async def get_chunks_for_paper(
-    session: AsyncSession,
-    paper_id: int,
-) -> list[Chunk]:
-    result = await session.execute(
-        select(Chunk).where(
-            Chunk.paper_id == paper_id
-        )
-    )
-
-    return list(result.scalars().all())
-    
