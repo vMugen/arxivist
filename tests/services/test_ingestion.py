@@ -3,15 +3,18 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 
-from app.services.ingestion import ingestion
+from app.services.ingestion import ingestion, MODEL_NAME
 
 
 @pytest.fixture
 def session():
     session = AsyncMock()
 
+    transaction = MagicMock()
+    transaction.__aenter__ = AsyncMock()
+    transaction.__aexit__ = AsyncMock()
+
     # AsyncSession.begin() returns an async context manager.
-    transaction = AsyncMock()
     session.begin = MagicMock(return_value=transaction)
 
     return session
@@ -116,7 +119,6 @@ async def test_new_paper_runs_ingestion_pipeline(session):
         )
     ]
 
-    pages = 5
     extracted_text = "A" * 600
 
     with (
@@ -130,11 +132,11 @@ async def test_new_paper_runs_ingestion_pipeline(session):
         ) as fetch_metadata,
         patch(
             "app.services.ingestion.download_pdf",
-            return_value="test.pdf",
+            new=AsyncMock(return_value="test.pdf"),
         ) as download_pdf,
         patch(
             "app.services.ingestion.extract_text",
-            return_value=(pages, extracted_text),
+            return_value=(5, extracted_text),
         ) as extract_text,
         patch(
             "app.services.ingestion.chunk_text",
@@ -176,7 +178,7 @@ async def test_new_paper_runs_ingestion_pipeline(session):
         "2401.12345",
     )
 
-    download_pdf.assert_called_once_with(
+    download_pdf.assert_awaited_once_with(
         metadata.pdf_url,
         "2401.12345",
     )
@@ -219,7 +221,7 @@ async def test_new_paper_with_no_chunks_raises(session):
         ),
         patch(
             "app.services.ingestion.download_pdf",
-            return_value="test.pdf",
+            new=AsyncMock(return_value="test.pdf"),
         ),
         patch(
             "app.services.ingestion.extract_text",
@@ -283,3 +285,134 @@ async def test_existing_embeddings_are_not_recreated(
     assert response.total_pages == 0
     assert response.extracted_text_preview == ""
     assert response.total_chunks == 1
+
+
+@pytest.mark.anyio
+async def test_missing_embeddings_are_created(
+    session,
+    paper,
+    chunk,
+):
+    with (
+        patch(
+            "app.services.ingestion.get_paper_by_id",
+            new=AsyncMock(return_value=paper),
+        ),
+        patch(
+            "app.services.ingestion.get_chunks_for_paper",
+            new=AsyncMock(return_value=[chunk]),
+        ),
+        patch(
+            "app.services.ingestion.get_embeddings_for_chunks",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "app.services.ingestion.LocalEmbeddingProvider",
+        ) as provider,
+        patch(
+            "app.services.ingestion.create_chunk_embeddings",
+            return_value=["embedding"],
+        ) as create_chunk_embeddings,
+        patch(
+            "app.services.ingestion.create_embeddings",
+            new=AsyncMock(),
+        ) as create_embeddings,
+    ):
+        response = await ingestion(
+            session,
+            "2401.12345",
+        )
+
+    provider.assert_called_once_with(MODEL_NAME)
+
+    create_chunk_embeddings.assert_called_once_with(
+        [chunk],
+        provider.return_value,
+    )
+
+    create_embeddings.assert_awaited_once_with(
+        session,
+        ["embedding"],
+    )
+
+    assert response.total_chunks == 1
+
+
+
+@pytest.mark.anyio
+async def test_only_chunks_without_embeddings_are_processed(
+    session,
+):
+    chunk_with_embedding = SimpleNamespace(
+        id=1,
+        paper_id=10,
+        chunk_index=0,
+        start_char=0,
+        end_char=10,
+        text="already embedded",
+    )
+
+    chunk_without_embedding = SimpleNamespace(
+        id=2,
+        paper_id=10,
+        chunk_index=1,
+        start_char=10,
+        end_char=20,
+        text="needs embedding",
+    )
+
+    paper = SimpleNamespace(
+        id=10,
+        arxiv_id="2401.12345",
+    )
+
+    existing_embedding = SimpleNamespace(
+        chunk_id=chunk_with_embedding.id,
+    )
+
+    with (
+        patch(
+            "app.services.ingestion.get_paper_by_id",
+            new=AsyncMock(return_value=paper),
+        ),
+        patch(
+            "app.services.ingestion.get_chunks_for_paper",
+            new=AsyncMock(
+                return_value=[
+                    chunk_with_embedding,
+                    chunk_without_embedding,
+                ]
+            ),
+        ),
+        patch(
+            "app.services.ingestion.get_embeddings_for_chunks",
+            new=AsyncMock(
+                return_value=[existing_embedding]
+            ),
+        ),
+        patch(
+            "app.services.ingestion.LocalEmbeddingProvider",
+        ) as provider,
+        patch(
+            "app.services.ingestion.create_chunk_embeddings",
+            return_value=["new-embedding"],
+        ) as create_chunk_embeddings,
+        patch(
+            "app.services.ingestion.create_embeddings",
+            new=AsyncMock(),
+        ) as create_embeddings,
+    ):
+        await ingestion(
+            session,
+            "2401.12345",
+        )
+
+    create_chunk_embeddings.assert_called_once_with(
+        [chunk_without_embedding],
+        provider.return_value,
+    )
+
+    create_embeddings.assert_awaited_once_with(
+        session,
+        ["new-embedding"],
+    )

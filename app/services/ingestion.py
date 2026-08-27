@@ -64,8 +64,7 @@ async def ingestion(
             arxiv_id,
         )
 
-        pdf_path = await anyio.to_thread.run_sync(
-            download_pdf,
+        pdf_path = await download_pdf(
             metadata.pdf_url,
             arxiv_id,
         )

@@ -32,6 +32,9 @@ def chunk_text(
                 )
             )
 
+        if end == text_length:
+            break
+
         start += step
 
     return chunks
