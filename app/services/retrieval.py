@@ -11,7 +11,7 @@ embedding_provider = LocalEmbeddingProvider(model_name=EMBEDDING_MODEL)
 async def retrieve_chunks(
         session: AsyncSession,
         query: str,
-        top_k: int = 5,
+        top9_k: int = 5,
 ) -> list[RetrievedChunk]:
 
     query_vector = embedding_provider.embed(
