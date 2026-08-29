@@ -31,7 +31,7 @@ from app.repositories.embedding import (
     create_embeddings,
     get_embeddings_for_chunks,
 )
-
+ 
 
 async def ingestion(
     session: AsyncSession,
